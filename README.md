@@ -4,16 +4,16 @@
 
 ## 安装
 ```
-npm i spd-ssr-cli -g
+npm i vue-ssr-cli -g
 ```
 
 ## Usage
 ```
-Usage: spd-ssr <root-path> <dest-path> <routers.json>
+Usage: vue-ssr <root-path> <dest-path> <routers.json>
 
        root-path: 项目编译后的代码目录
        dest-path: 页面模版存放目录；当dest-path为绝对路径时，会自动同步项目的static目录
-       routers.json 项目生成的url路径列表；使用spd-page-manage时，该文件是src/pages.js.json
+       routers.json 项目生成的url路径列表；使用vue-page-manage时，该文件是src/pages.js.json
 
 Options:
 
