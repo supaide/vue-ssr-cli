@@ -1,0 +1,33 @@
+{
+  "name": "vue-ssr-cli",
+  "version": "1.0.0",
+  "description": "generate ssr page",
+  "bin": {
+    "vue-ssr": "bin/ssr"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/supaide/vue-ssr-cli.git"
+  },
+  "keywords": [
+    "ssr",
+    "vue"
+  ],
+  "author": "cyij",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/supaide/vue-ssr-cli/issues"
+  },
+  "homepage": "https://github.com/supaide/vue-ssr-cli#readme",
+  "dependencies": {
+    "chalk": "^2.3.0",
+    "commander": "^2.12.1",
+    "express": "^4.16.2",
+    "ora": "^1.3.0",
+    "portfinder": "^1.0.13",
+    "phantomjs-prebuilt": "^2.1.16"
+  },
+  "engines": {
+    "node": ">=6.0.0"
+  }
+}

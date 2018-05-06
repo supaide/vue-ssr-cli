@@ -1,0 +1,161 @@
+#!/usr/bin/env node
+const fs = require('fs')
+const path = require('path')
+const server = require('../lib/server')
+const program = require('commander')
+const chalk = require('chalk')
+const ora = require('ora')
+
+program
+  .usage('<root-path> <dest-path> <routers.json>')
+  .description('\t root-path: 项目编译后的代码目录\n'+
+               '\t dest-path: 页面模版存放目录；当dest-path为绝对路径时，会自动同步项目的static目录\n'+
+               '\t routers.json 项目生成的url路径列表；使用vue-page-manage时，该文件是src/pages.js.json')
+  .option('-i, --index <index>', '项目入口文件名', 'index.html')
+  .option('-s, --static <static>', '静态资源文件目录名', 'static')
+  .option('-r, --root-id <root-id>', 'Dom树根节点Id名', 'app')
+  .option('-l, --lang [php|nodejs|$filepath|none]', '页面模版动态数据赋值语法，默认支持php', 'php')
+  .option(' ', '可以通过$filepath指定语法定义文件；如果无动态数据需求，选择none参数')
+  .option('-t, --async-time <async-time>', '代码分割导致的异步加载，需要指定setTimeout时间', 100)
+
+program.on('--help', () => {})
+
+function help () {
+  program.parse(process.argv)
+  if (program.args.length < 3) {
+    return program.help()
+  }
+}
+help()
+
+let options = {
+  root: program.args[0],
+  dest: program.args[1],
+  routers: program.args[2],
+  index: program.index,
+  static: program.static,
+  lang: program.lang,
+  rootId: program.rootId,
+  asyncTime: program.asyncTime
+}
+
+var copydir = function (srcPath, destPath) {
+  if( fs.existsSync(srcPath) ) {
+    fs.readdirSync(srcPath).forEach(function(file, index){
+      var curSrcPath = path.join(srcPath, file)
+      var curDestPath = path.join(destPath, file)
+      if(fs.lstatSync(curSrcPath).isDirectory()) {
+        if (!fs.existsSync(curDestPath)) {
+          fs.mkdirSync(curDestPath)
+        }
+        copydir(curSrcPath, curDestPath)
+      } else {
+        fs.copyFileSync(curSrcPath, curDestPath)
+      }
+    })
+  }
+}
+
+var rmdir = function (path0) {
+  if( fs.existsSync(path0) ) {
+    fs.readdirSync(path0).forEach(function(file, index){
+      var curPath = path.join(path0, file)
+      if(fs.lstatSync(curPath).isDirectory()) {
+        rmdir(curPath)
+      } else {
+        fs.unlinkSync(curPath)
+      }
+    })
+    fs.rmdirSync(path0)
+  }
+}
+
+if (options.lang !== 'php' && options.lang !== 'nodejs' && options.lang !== 'none') {
+  options.lang = path.join(process.cwd(), options.lang)
+}
+if (!path.isAbsolute(options.root)) {
+  options.root = path.join(process.cwd(), options.root)
+}
+if (!path.isAbsolute(options.dest)) {
+  options.dest = path.join(process.cwd(), options.dest, 'ssr_template')
+  if (fs.existsSync(options.dest)) {
+    rmdir(options.dest)
+  }
+  fs.mkdirSync(options.dest)
+} else {
+  var resourcePath = path.join(path.dirname(options.dest), options.static)
+  if (fs.existsSync(resourcePath)) {
+    rmdir(resourcePath)
+  }
+  fs.mkdirSync(resourcePath)
+  copydir(path.join(options.root, options.static), resourcePath)
+}
+if (!path.isAbsolute(options.routers)) {
+  options.routers = path.join(process.cwd(), options.routers)
+}
+
+var error = function (msg) {
+  console.log(chalk.yellow('Error: '+msg))
+  process.exit()
+}
+
+if (!fs.existsSync(options.root)) {
+  error('the root path ['+options.root+'] is not exist!')
+}
+
+if (!fs.existsSync(options.dest)) {
+  error('the dest path ['+options.dest+'] is not exist!')
+}
+
+if (!fs.existsSync(options.routers)) {
+  error('the router file ['+options.routers+'] is not exist!')
+}
+
+if (fs.existsSync(options.dest)) {
+  rmdir(options.dest)
+}
+fs.mkdirSync(options.dest)
+if (!fs.existsSync(options.dest)) {
+  error('the dest path ['+options.dest+'] is not exist!')
+}
+
+options.logFile = options.root + '/__ssr_log'
+fs.writeFileSync(options.logFile, '')
+
+var cursor = 0
+var showLog = function () {
+  fs.open(options.logFile , 'r' , function (err, fd) {
+    var buf = new Buffer(10240)
+    var size = fs.readSync(fd, buf, 0, 10240, cursor);
+    if (size > 0) {
+      cursor += size
+      console.log(buf.toString())
+    }
+  })
+}
+
+var interval = setInterval(showLog, 30)
+
+var onExit = function () {
+  if (interval) {
+    clearInterval(interval)
+  }
+  fs.unlinkSync(options.logFile)
+}
+
+process.on('SIGINT', () => {
+  onExit()
+})
+
+process.on('exit', () => {
+  onExit()
+})
+
+const app = new server(options)
+app.start(function (html) {
+  console.log(html)
+  process.exit()
+}, function (error) {
+  console.log(chalk.yellow('Error: '+error))
+  process.exit()
+})
