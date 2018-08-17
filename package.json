@@ -1,6 +1,6 @@
 {
   "name": "vue-ssr-cli",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "generate vue ssr page",
   "bin": {
     "vue-ssr": "bin/ssr"
